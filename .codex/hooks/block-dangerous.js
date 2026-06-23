@@ -18,10 +18,8 @@ async function readStdinJson() {
 
 function isDangerousCommand(command) {
   const rules = [
-    /\brm\s+(-[^\s]*r[^\s]*f|-.[^\s]*f[^\s]*r)\b/,
-    /\brm\s+-r\s+\/\b/,
-    /\brm\s+(-[^\s]*r[^\s]*f|-.[^\s]*f[^\s]*r)\s+\/\b/,
-    /\bsudo\s+rm\s+(-[^\s]*r[^\s]*f|-.[^\s]*f[^\s]*r)\b/,
+    /\brm\s+(-[^\s]*r[^\s]*f|-.[^\s]*f[^\s]*r)\b/, // rm -rf / rm -fr
+    /\brm\s+-r\s+\/\b/, // rm -r /
     /\bdd\s+.*\bof=\/dev\//,
     /\bmkfs(\.\w+)?\b/,
     /\bshutdown\b/,
