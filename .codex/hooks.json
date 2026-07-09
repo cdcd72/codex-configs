@@ -2,18 +2,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|apply_patch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/auto-backup.js\"",
-            "commandWindows": "pwsh -NoLogo -NoProfile -File .codex/hooks/run-hook.ps1 auto-backup.js",
-            "statusMessage": "在編輯之前建立備份提交",
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Shell|PowerShell|functions\\.shell_command",
         "hooks": [
           {
@@ -36,19 +24,6 @@
             "commandWindows": "pwsh -NoLogo -NoProfile -File .codex/hooks/run-hook.ps1 format-lint.js",
             "statusMessage": "格式化已編輯的檔案並檢查 Lint",
             "timeout": 120
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/auto-commit.js\"",
-            "commandWindows": "pwsh -NoLogo -NoProfile -File .codex/hooks/run-hook.ps1 auto-commit.js",
-            "statusMessage": "為完成的回合建立自動提交",
-            "timeout": 30
           }
         ]
       }
