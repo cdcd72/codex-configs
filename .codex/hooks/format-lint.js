@@ -20,6 +20,12 @@ async function readStdinJson() {
   return JSON.parse(raw);
 }
 
+function normalizeFilePath(targetPath) {
+  return process.platform === 'win32'
+    ? path.normalize(targetPath).toLowerCase()
+    : path.normalize(targetPath);
+}
+
 function extractPatchedFiles(patchText) {
   const files = new Set();
   const lines = patchText.split(/\r?\n/);
@@ -105,7 +111,12 @@ async function main() {
     .map((file) => resolveFilePath(projectRoot, file))
     .filter((file) => fs.existsSync(file));
 
-  for (const filePath of files) {
+  const normalizedFiles = files.map((filePath) => ({
+    filePath,
+    normalizedPath: normalizeFilePath(filePath),
+  }));
+
+  for (const { filePath, normalizedPath } of normalizedFiles) {
     const isFormatTarget =
       /\.(js|jsx|ts|tsx|mjs|cjs|json|css|scss|html|md|mdx|yaml|yml|svelte)$/i.test(
         filePath,
@@ -117,11 +128,47 @@ async function main() {
         'prettier',
         '--write',
         filePath,
-      ]);
+      ], 'ignore');
     }
 
     if (isLintTarget) {
-      runPackageManager(packageManagerCommand, ['eslint', '--fix', filePath]);
+      const eslintResult = runPackageManager(
+        packageManagerCommand,
+        ['eslint', '--fix', '--format', 'json', filePath],
+        'pipe',
+      );
+
+      let lintReports = [];
+      try {
+        lintReports = JSON.parse(eslintResult.stdout?.toString() || '[]');
+      } catch {
+        const stderr = eslintResult.stderr?.toString();
+        if (stderr) {
+          console.error(`[format-lint] eslint 執行異常：${stderr.slice(0, 500)}`);
+        }
+        continue;
+      }
+
+      const fileReport =
+        lintReports.find((report) => normalizeFilePath(report.filePath) === normalizedPath) ??
+        lintReports[0];
+
+      if (fileReport && fileReport.errorCount > 0) {
+        const summary = fileReport.messages
+          .filter((message) => message.severity === 2)
+          .slice(0, 10)
+          .map(
+            (message) =>
+              `  L${message.line}:${message.column} [${message.ruleId ?? 'unknown-rule'}] ${message.message}`,
+          )
+          .join('\n');
+
+        console.error(
+          `[format-lint] ${path.basename(filePath)} 仍有 ${fileReport.errorCount} 個 ESLint 無法自動修復的錯誤：\n${summary}\n請修正這些問題。`,
+        );
+
+        process.exit(2);
+      }
     }
   }
 
